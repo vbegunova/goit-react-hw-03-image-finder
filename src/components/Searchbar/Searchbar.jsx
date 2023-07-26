@@ -7,7 +7,7 @@ const Searchbar = ({ onSubmit }) => {
       <SearchForm onSubmit={onSubmit}>
         <SearchButton type="submit">
             <FaSearch/>
-          {/* <SearchButtonLabel>Search</SearchButtonLabel> */}
+          <SearchButtonLabel>Search</SearchButtonLabel>
         </SearchButton>
 
         <SearchInput

@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { FaSearch } from 'react-icons/fa';
 
 const Header = styled.header`
   top: 0;
@@ -69,25 +68,14 @@ const SearchInput = styled.input`
   font-size: 20px;
   border: none;
   outline: none;
-  padding-left: 4px;
-  padding-right: 4px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 5px;
 
-  ::placeholder {
+  &::placeholder {
     font: inherit;
-    font-size: 12px;
-    color: green;
+    font-size: 18px;
   }
-  /* ::placeholder,
-  ::-webkit-input-placeholder {
-    font: inherit;
-    font-size: 12px;
-    color: green;
-  }
-  :-ms-input-placeholder {
-     font: inherit;
-    font-size: 12px;
-    color: green;
-  } */
 `;
 
 
