@@ -12,8 +12,6 @@ const ERR_MESSAGE =
 
 export class App extends Component {
   abortCtrl = null;
-  totalItems;
-  page = 1;
 
   state = {
     query: '',
@@ -22,15 +20,19 @@ export class App extends Component {
     isModalOpen: false,
     image: '',
     error: null,
+    page: 1,
+    totalPages: 0,
   };
 
-  componentDidUpdate = async (prevProps, prevState) => {
-    const { query } = this.state;
-    if (prevState.query !== query) {
-      this.setState({
-        data: [],
-      });
-      this.page = 1;
+  componentDidUpdate = async (_, prevState) => {
+    const { query, page } = this.state;
+    if (prevState.query !== query || prevState.page !== page) {
+      if (query === '') {
+        this.setState({
+          data: [],
+        });
+        return;
+      }
 
       try {
         if (this.abortCtrl !== null) {
@@ -38,32 +40,41 @@ export class App extends Component {
         }
         this.abortCtrl = new AbortController();
 
+        if (page === 1) {
+          this.setState({
+            data: [],
+          });
+        }
+
         this.setState({
           isLoading: true,
           error: null,
         });
 
-        const fetchedData = await fetchItems(query, this.page, this.abortCtrl);
-        this.totalItems = fetchedData.totalHits;
-        if (this.totalItems === 0) {
+        const fetchedData = await fetchItems(query, page, this.abortCtrl);
+        if (fetchedData.totalHits === 0) {
           this.setState({
-            error: 'Please, enter correct query.',
+            error: 'Please, enter a correct query.',
           });
           return;
         }
-        const items = [...fetchedData.hits].map(item => {
-          return {
-            id: item.id,
-            webformatURL: item.webformatURL,
-            largeImageURL: item.largeImageURL,
-          };
-        });
 
-        if (items) {
-          this.setState(prevState => ({
+        const items = this.getNormilizedItem(fetchedData.hits);
+
+        this.setState(
+          prevState => ({
             data: [...prevState.data, ...items],
-          }));
-        }
+            totalPages: Math.ceil(fetchedData.totalHits / 12),
+          }),
+          () => {
+            if (page !== 1) {
+              window.scrollBy({
+                top: 300 * 3,
+                behavior: 'smooth',
+              });
+            }
+          }
+        );
       } catch (error) {
         if (error.code !== 'ERR_CANCELED') {
           this.setState({
@@ -82,94 +93,30 @@ export class App extends Component {
     this.abortCtrl.abort();
   };
 
-  handleSubmit = async e => {
-    e.preventDefault();
-
-    const { query } = e.target;
-    const normalizedQuery = query.value.trim();
-
-    const containsInvalidCharacters = /[&?!@#$^*()_=+№;:'"%0-9]/.test(
-      normalizedQuery
-    );
-
-    if (normalizedQuery === '' || containsInvalidCharacters) {
-      this.setState({
-        error: 'Please, enter a correct query.',
-      });
-    } else {
-      this.setState({
-        query: normalizedQuery,
-        error: null,
-      });
-    }
-
-    query.value = '';
+  getNormilizedItem = arr => {
+    return [...arr].map(item => {
+      return {
+        id: item.id,
+        webformatURL: item.webformatURL,
+        largeImageURL: item.largeImageURL,
+      };
+    });
   };
 
-  calculateTotalPages = () => {
-    return Math.round(this.totalItems / 12);
+  handleSubmit = (input, error) => {
+    this.setState({
+      totalPages: 0,
+      page: 1,
+      query: input,
+      error: error,
+    });
   };
 
-  loadingImages = async () => {
-    const { query } = this.state;
-    const totalPages = this.calculateTotalPages();
-
-    if (totalPages > 1) {
-      this.page += 1;
-
-      try {
-        this.abortCtrl = new AbortController();
-        this.setState({
-          isLoading: true,
-          error: null,
-        });
-
-        const fetchedData = await fetchItems(query, this.page, this.abortCtrl);
-        const items = [...fetchedData.hits].map(item => {
-          return {
-            id: item.id,
-            webformatURL: item.webformatURL,
-            largeImageURL: item.largeImageURL,
-          };
-        });
-
-        if (items) {
-          this.setState(
-            prevState => ({
-              data: [...prevState.data, ...items],
-            }),
-            () => {
-              window.scrollBy({
-                top: 300 * 3,
-                behavior: 'smooth',
-              });
-            }
-          );
-        }
-      } catch (error) {
-        this.setState({
-          error: 'Oops, sorry, something went wrong, try reloading this page',
-        });
-      } finally {
-        this.setState({
-          isLoading: false,
-        });
-      }
-    }
+  setPage = () => {
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+    }));
   };
-
-  // fetchData = async ({ query, page }) => {
-  //   const fetchedData = await fetchItems(query, page);
-  //   const items = [...fetchedData.hits].map(item => {
-  //     return {
-  //       id: item.id,
-  //       webformatURL: item.webformatURL,
-  //       largeImageURL: item.largeImageURL,
-  //     };
-  //   });
-
-  //   return items;
-  // };
 
   openModal = image => {
     this.setState({
@@ -185,21 +132,18 @@ export class App extends Component {
   };
 
   render() {
-    const { query, data, isLoading, isModalOpen, image, error } = this.state;
-    const totalPages = this.calculateTotalPages();
-    const verify =
-      totalPages !== 1 &&
-      totalPages !== 0 &&
-      totalPages !== this.page &&
-      !error;
+    const { data, isLoading, isModalOpen, image, error, page, totalPages } =
+      this.state;
+    console.log(totalPages);
+    const verify =  
+    // totalPages !== 0 && 
+    totalPages !== page && !error;
 
     return (
       <>
         <Searchbar onSubmit={this.handleSubmit} />
         {data[0] && <ImageGallery items={data} openModal={this.openModal} />}
-        {!isLoading && query && verify && (
-          <Button handleClick={this.loadingImages} />
-        )}
+        {data[0] && verify && <Button handleClick={this.setPage} />}
         {isLoading && <Loader />}
         {error && !isLoading && <Error error={error} />}
         {/* <Modal
@@ -211,4 +155,167 @@ export class App extends Component {
       </>
     );
   }
+
+  // componentDidUpdate = async (prevProps, prevState) => {
+  //   const { query, page } = this.state;
+  //   if (prevState.query !== query ) {
+  //     if (query === '') {
+  //       this.setState({
+  //         data: [],
+  //       });
+  //       return;
+  //     }
+
+  //     try {
+  //       if (this.abortCtrl !== null) {
+  //         this.abortCtrl.abort();
+  //       }
+  //       this.abortCtrl = new AbortController();
+
+  //       this.setState({
+  //         data: [],
+  //         isLoading: true,
+  //         error: null,
+  //       });
+
+  //       const fetchedData = await fetchItems(query, page, this.abortCtrl);
+  //       this.totalItems = fetchedData.totalHits;
+
+  //       if (this.totalItems === 0) {
+  //         this.setState({
+  //           error: 'Please, enter correct query.',
+  //         });
+  //         return;
+  //       }
+  //       const items = this.getNormilizedItem(fetchedData.hits);
+
+  //       this.setState(prevState => ({
+  //         data: [...prevState.data, ...items],
+  //       }));
+  //     } catch (error) {
+  //       if (error.code !== 'ERR_CANCELED') {
+  //         this.setState({
+  //           error: ERR_MESSAGE,
+  //         });
+  //       }
+  //     } finally {
+  //       this.setState({
+  //         isLoading: false,
+  //       });
+  //     }
+  //   }
+  // };
+
+  // loadingImages = async () => {
+  //   const { query, page } = this.state;
+  //   const totalPages = this.calculateTotalPages();
+
+  //   if (totalPages > 1) {
+  //     this.setState(prevState => ({
+  //       page: prevState.page + 1,
+  //     }));
+
+  //     try {
+  //       this.abortCtrl = new AbortController();
+  //       this.setState({
+  //         isLoading: true,
+  //         error: null,
+  //       });
+
+  //       const fetchedData = await fetchItems(query, page, this.abortCtrl);
+  //       const items = [...fetchedData.hits].map(item => {
+  //         return {
+  //           id: item.id,
+  //           webformatURL: item.webformatURL,
+  //           largeImageURL: item.largeImageURL,
+  //         };
+  //       });
+
+  //       if (items) {
+  //         this.setState(
+  //           prevState => ({
+  //             data: [...prevState.data, ...items],
+  //           }),
+  //           () => {
+  //             window.scrollBy({
+  //               top: 300 * 3,
+  //               behavior: 'smooth',
+  //             });
+  //           }
+  //         );
+  //       }
+  //     } catch (error) {
+  //       this.setState({
+  //         error: ERR_MESSAGE,
+  //       });
+  //     } finally {
+  //       this.setState({
+  //         isLoading: false,
+  //       });
+  //     }
+  //   }
+  // };
+
+  // fetchData = async ({ query, page }) => {
+  //   const fetchedData = await fetchItems(query, page);
+  //   const items = [...fetchedData.hits].map(item => {
+  //     return {
+  //       id: item.id,
+  //       webformatURL: item.webformatURL,
+  //       largeImageURL: item.largeImageURL,
+  //     };
+  //   });
+
+  //   return items;
+  // };
+
+  // loadingImages = async () => {
+  //   const { query, page } = this.state;
+  //   const totalPages = this.calculateTotalPages();
+
+  //   if (totalPages > 1) {
+  //     this.setState(prevState => ({
+  //       page: prevState.page + 1,
+  //     }));
+
+  //     try {
+  //       this.abortCtrl = new AbortController();
+  //       this.setState({
+  //         isLoading: true,
+  //         error: null,
+  //       });
+
+  //       const fetchedData = await fetchItems(query, page, this.abortCtrl);
+  //       const items = [...fetchedData.hits].map(item => {
+  //         return {
+  //           id: item.id,
+  //           webformatURL: item.webformatURL,
+  //           largeImageURL: item.largeImageURL,
+  //         };
+  //       });
+
+  //       if (items) {
+  //         this.setState(
+  //           prevState => ({
+  //             data: [...prevState.data, ...items],
+  //           }),
+  //           () => {
+  //             window.scrollBy({
+  //               top: 300 * 3,
+  //               behavior: 'smooth',
+  //             });
+  //           }
+  //         );
+  //       }
+  //     } catch (error) {
+  //       this.setState({
+  //         error: ERR_MESSAGE,
+  //       });
+  //     } finally {
+  //       this.setState({
+  //         isLoading: false,
+  //       });
+  //     }
+  //   }
+  // };
 }
