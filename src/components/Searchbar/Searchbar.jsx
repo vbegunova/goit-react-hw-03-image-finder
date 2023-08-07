@@ -1,4 +1,89 @@
-import { Component } from 'react';
+// import { Component } from 'react';
+// import {
+//   Header,
+//   SearchButton,
+//   SearchButtonLabel,
+//   SearchForm,
+//   SearchInput,
+// } from './Searchbar.styled';
+// import { FaSearch } from 'react-icons/fa';
+// // ({ onSubmit })
+
+// const ERR_MSG = 'Please, enter a correct query.';
+
+// class Searchbar extends Component {
+//   state = {
+//     query: '',
+//   };
+
+//   handleChange = e => {
+//     this.setState({
+//       query: e.target.value,
+//     });
+//   };
+
+//   handleSubmit = e => {
+//     e.preventDefault();
+
+//     const { query } = this.state;
+//     const normalizedQuery = query.trim();
+
+//     const containsInvalidCharacters = /[&?!@#$^*()_=+№;:'"%]/.test(
+//       normalizedQuery
+//     );
+
+//     if (normalizedQuery === '' || containsInvalidCharacters) {
+//       this.props.onSubmit('', ERR_MSG);
+//     } else {
+//       this.props.onSubmit(normalizedQuery, null);
+//     }
+
+//     // if (normalizedQuery === '' || containsInvalidCharacters) {
+//     //   this.setState({
+//     //     error: 'Please, enter a correct query.',
+//     //     data: [],
+//     //   });
+//     // } else {
+//     //   this.setState({
+//     //     query: normalizedQuery,
+//     //     error: null,
+//     //   });
+//     // }
+
+//     this.setState({
+//       query: '',
+//     });
+//   };
+
+//   render() {
+//     return (
+//       <Header>
+//         <SearchForm onSubmit={this.handleSubmit}>
+//           <SearchButton type="submit">
+//             <FaSearch />
+//             <SearchButtonLabel>Search</SearchButtonLabel>
+//           </SearchButton>
+
+//           <SearchInput
+//             name="query"
+//             className="input"
+//             type="text"
+//             autoComplete="off"
+//             autoFocus
+//             placeholder="Search images and photos"
+//             onChange={this.handleChange}
+//             value={this.state.query}
+//           />
+//         </SearchForm>
+//       </Header>
+//     );
+//   }
+// }
+
+// export default Searchbar;
+
+import { Formik } from 'formik';
+import * as yup from 'yup';
 import {
   Header,
   SearchButton,
@@ -7,58 +92,36 @@ import {
   SearchInput,
 } from './Searchbar.styled';
 import { FaSearch } from 'react-icons/fa';
-// ({ onSubmit })
 
-const ERR_MSG = 'Please, enter a correct query.';
+const initialValues = {
+  query: '',
+};
 
-class Searchbar extends Component {
-  state = {
-    query: '',
-  };
+const schema = yup.object().shape({
+  query: yup.string(),
+});
 
-  handleChange = e => {
-    this.setState({
-      query: e.target.value,
-    });
-  };
+const Searchbar = ({onSubmit}) => {
+  const handleSubmit = (values, { resetForm }) => {
+    const query = values.query.trim();
 
-  handleSubmit = e => {
-    e.preventDefault();
-
-    const { query } = this.state;
-    const normalizedQuery = query.trim();
-
-    const containsInvalidCharacters = /[&?!@#$^*()_=+№;:'"%]/.test(
-      normalizedQuery
-    );
-
-    if (normalizedQuery === '' || containsInvalidCharacters) {
-      this.props.onSubmit('', ERR_MSG);
-    } else {
-      this.props.onSubmit(normalizedQuery, null);
+    if (query === '') {
+      onSubmit('Enter a query!', true);
+      return;
     }
 
-    // if (normalizedQuery === '' || containsInvalidCharacters) {
-    //   this.setState({
-    //     error: 'Please, enter a correct query.',
-    //     data: [],
-    //   });
-    // } else {
-    //   this.setState({
-    //     query: normalizedQuery,
-    //     error: null,
-    //   });
-    // }
-
-    this.setState({
-      query: '',
-    });
+    onSubmit(query);
+    resetForm();
   };
 
-  render() {
-    return (
-      <Header>
-        <SearchForm onSubmit={this.handleSubmit}>
+  return (
+    <Header>
+      <Formik
+        validationSchema={schema}
+        initialValues={initialValues}
+        onSubmit={handleSubmit}
+      >
+        <SearchForm>
           <SearchButton type="submit">
             <FaSearch />
             <SearchButtonLabel>Search</SearchButtonLabel>
@@ -71,13 +134,11 @@ class Searchbar extends Component {
             autoComplete="off"
             autoFocus
             placeholder="Search images and photos"
-            onChange={this.handleChange}
-            value={this.state.query}
           />
         </SearchForm>
-      </Header>
-    );
-  }
-}
+      </Formik>
+    </Header>
+  );
+};
 
 export default Searchbar;

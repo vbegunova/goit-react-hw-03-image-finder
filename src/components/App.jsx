@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import { fetchItems } from './api/api';
+import { fetchItems } from 'services/api';
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
 import Button from './Button';
@@ -90,7 +90,9 @@ export class App extends Component {
   };
 
   componentWillUnmount = () => {
-    this.abortCtrl.abort();
+    if (this.abortCtrl !== null) {
+      this.abortCtrl.abort();
+    }
   };
 
   getNormilizedItem = arr => {
@@ -103,12 +105,19 @@ export class App extends Component {
     });
   };
 
-  handleSubmit = (input, error) => {
+  handleSubmit = (input, isError) => {
+    if (isError) {
+      this.setState({
+        query: '',
+        data: [],
+        error: input,
+      });
+      return;
+    }
     this.setState({
-      totalPages: 0,
       page: 1,
       query: input,
-      error: error,
+      error: null,
     });
   };
 
@@ -134,10 +143,7 @@ export class App extends Component {
   render() {
     const { data, isLoading, isModalOpen, image, error, page, totalPages } =
       this.state;
-    console.log(totalPages);
-    const verify =  
-    // totalPages !== 0 && 
-    totalPages !== page && !error;
+    const verify = totalPages !== page && !error;
 
     return (
       <>
@@ -155,167 +161,4 @@ export class App extends Component {
       </>
     );
   }
-
-  // componentDidUpdate = async (prevProps, prevState) => {
-  //   const { query, page } = this.state;
-  //   if (prevState.query !== query ) {
-  //     if (query === '') {
-  //       this.setState({
-  //         data: [],
-  //       });
-  //       return;
-  //     }
-
-  //     try {
-  //       if (this.abortCtrl !== null) {
-  //         this.abortCtrl.abort();
-  //       }
-  //       this.abortCtrl = new AbortController();
-
-  //       this.setState({
-  //         data: [],
-  //         isLoading: true,
-  //         error: null,
-  //       });
-
-  //       const fetchedData = await fetchItems(query, page, this.abortCtrl);
-  //       this.totalItems = fetchedData.totalHits;
-
-  //       if (this.totalItems === 0) {
-  //         this.setState({
-  //           error: 'Please, enter correct query.',
-  //         });
-  //         return;
-  //       }
-  //       const items = this.getNormilizedItem(fetchedData.hits);
-
-  //       this.setState(prevState => ({
-  //         data: [...prevState.data, ...items],
-  //       }));
-  //     } catch (error) {
-  //       if (error.code !== 'ERR_CANCELED') {
-  //         this.setState({
-  //           error: ERR_MESSAGE,
-  //         });
-  //       }
-  //     } finally {
-  //       this.setState({
-  //         isLoading: false,
-  //       });
-  //     }
-  //   }
-  // };
-
-  // loadingImages = async () => {
-  //   const { query, page } = this.state;
-  //   const totalPages = this.calculateTotalPages();
-
-  //   if (totalPages > 1) {
-  //     this.setState(prevState => ({
-  //       page: prevState.page + 1,
-  //     }));
-
-  //     try {
-  //       this.abortCtrl = new AbortController();
-  //       this.setState({
-  //         isLoading: true,
-  //         error: null,
-  //       });
-
-  //       const fetchedData = await fetchItems(query, page, this.abortCtrl);
-  //       const items = [...fetchedData.hits].map(item => {
-  //         return {
-  //           id: item.id,
-  //           webformatURL: item.webformatURL,
-  //           largeImageURL: item.largeImageURL,
-  //         };
-  //       });
-
-  //       if (items) {
-  //         this.setState(
-  //           prevState => ({
-  //             data: [...prevState.data, ...items],
-  //           }),
-  //           () => {
-  //             window.scrollBy({
-  //               top: 300 * 3,
-  //               behavior: 'smooth',
-  //             });
-  //           }
-  //         );
-  //       }
-  //     } catch (error) {
-  //       this.setState({
-  //         error: ERR_MESSAGE,
-  //       });
-  //     } finally {
-  //       this.setState({
-  //         isLoading: false,
-  //       });
-  //     }
-  //   }
-  // };
-
-  // fetchData = async ({ query, page }) => {
-  //   const fetchedData = await fetchItems(query, page);
-  //   const items = [...fetchedData.hits].map(item => {
-  //     return {
-  //       id: item.id,
-  //       webformatURL: item.webformatURL,
-  //       largeImageURL: item.largeImageURL,
-  //     };
-  //   });
-
-  //   return items;
-  // };
-
-  // loadingImages = async () => {
-  //   const { query, page } = this.state;
-  //   const totalPages = this.calculateTotalPages();
-
-  //   if (totalPages > 1) {
-  //     this.setState(prevState => ({
-  //       page: prevState.page + 1,
-  //     }));
-
-  //     try {
-  //       this.abortCtrl = new AbortController();
-  //       this.setState({
-  //         isLoading: true,
-  //         error: null,
-  //       });
-
-  //       const fetchedData = await fetchItems(query, page, this.abortCtrl);
-  //       const items = [...fetchedData.hits].map(item => {
-  //         return {
-  //           id: item.id,
-  //           webformatURL: item.webformatURL,
-  //           largeImageURL: item.largeImageURL,
-  //         };
-  //       });
-
-  //       if (items) {
-  //         this.setState(
-  //           prevState => ({
-  //             data: [...prevState.data, ...items],
-  //           }),
-  //           () => {
-  //             window.scrollBy({
-  //               top: 300 * 3,
-  //               behavior: 'smooth',
-  //             });
-  //           }
-  //         );
-  //       }
-  //     } catch (error) {
-  //       this.setState({
-  //         error: ERR_MESSAGE,
-  //       });
-  //     } finally {
-  //       this.setState({
-  //         isLoading: false,
-  //       });
-  //     }
-  //   }
-  // };
 }
